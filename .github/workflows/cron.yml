@@ -1,0 +1,15 @@
+name: Vrijgave- en rapportmails
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Roep de mailcontrole aan
+        run: |
+          curl -sS --max-time 60 \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            https://klaaspoort-huiswerk.vercel.app/api/cron/vrijgave
