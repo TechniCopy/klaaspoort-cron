@@ -2,6 +2,7 @@ name: Vrijgave- en rapportmails
 on:
   schedule:
     - cron: "*/15 * * * *"
+    - cron: "0 3 1 * *"  # maandelijkse heartbeat, zie job "heartbeat" hieronder
   workflow_dispatch:
 
 jobs:
@@ -13,3 +14,23 @@ jobs:
           curl -sS --max-time 60 \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             https://huiswerk-studium.nl/api/cron/vrijgave
+
+  # GitHub schakelt geplande workflows automatisch uit na 60 dagen zonder
+  # commits in deze repo (los van of de workflow zelf draait). Deze job
+  # commit maandelijks een tijdstempel, zodat de repo altijd "actief" blijft
+  # en niemand hier handmatig aan hoeft te denken.
+  heartbeat:
+    if: github.event.schedule == '0 3 1 * *'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Repo actief houden
+        run: |
+          echo "Laatste heartbeat: $(date -u +%Y-%m-%dT%H:%M:%SZ)" > LAATSTE_HEARTBEAT.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add LAATSTE_HEARTBEAT.txt
+          git diff --cached --quiet || git commit -m "Maandelijkse heartbeat (houdt deze scheduled workflow actief)"
+          git push
